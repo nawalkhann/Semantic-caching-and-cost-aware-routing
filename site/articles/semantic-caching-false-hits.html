@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semantic Caching for LLMs: Avoiding Wrong Cached Answers</title>
+<meta name="description" content="A similarity-only semantic cache served wrong answers on 21% of hits. Four checks cut false hits to 0.1% and keep most of the savings.">
+<meta name="keywords" content="semantic caching, LLM cache, semantic cache false positives, embedding similarity cache, RAG caching, GPTCache alternative, LLM cost reduction">
+<meta name="author" content="Nawal">
+<link rel="canonical" href="https://semantic-cache-router.vercel.app/articles/semantic-caching-false-hits">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Semantic Cache Router">
+<meta property="og:title" content="Semantic Caching for LLMs: Avoiding Wrong Cached Answers">
+<meta property="og:description" content="A similarity-only semantic cache served wrong answers on 21% of hits. Four checks cut false hits to 0.1% and keep most of the savings.">
+<meta property="og:url" content="https://semantic-cache-router.vercel.app/articles/semantic-caching-false-hits">
+<meta property="og:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Semantic Caching for LLMs: Avoiding Wrong Cached Answers">
+<meta name="twitter:description" content="A similarity-only semantic cache served wrong answers on 21% of hits. Four checks cut false hits to 0.1% and keep most of the savings.">
+<meta name="twitter:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="article:published_time" content="2026-10-21"><meta property="article:author" content="Nawal">
+<meta name="theme-color" content="#2a63c4">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://semantic-cache-router.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Articles", "item": "https://semantic-cache-router.vercel.app/articles"}, {"@type": "ListItem", "position": 3, "name": "Why naive semantic caches return wrong answers", "item": "https://semantic-cache-router.vercel.app/articles/semantic-caching-false-hits"}]}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Semantic Caching for LLMs: Avoiding Wrong Cached Answers", "description": "A similarity-only semantic cache served wrong answers on 21% of hits. Four checks cut false hits to 0.1% and keep most of the savings.", "author": {"@type": "Person", "name": "Nawal"}, "datePublished": "2026-10-21", "dateModified": "2026-10-21", "image": "https://semantic-cache-router.vercel.app/og.png", "mainEntityOfPage": "https://semantic-cache-router.vercel.app/articles/semantic-caching-false-hits", "keywords": "semantic caching, LLM cache, semantic cache false positives, embedding similarity cache, RAG caching, GPTCache alternative, LLM cost reduction"}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Semantic Cache Router</a>
+<nav aria-label="Main"><a href="/">Home</a><a href="/benchmark">Benchmark</a><a href="/dashboard">Dashboard</a><a href="/articles">Articles</a><a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a></nav>
+</div></header>
+<main><div class="wrap">
+<div class="crumbs"><a href="/">Home</a> / <a href="/articles">Articles</a></div>
+
+<article>
+<h1>Semantic Caching for LLMs: Avoiding Wrong Cached Answers</h1>
+<p class="meta">By Nawal · 2026-10-21 · 7 min read</p>
+
+<p>A semantic cache stores LLM answers keyed by the <em>embedding</em> of the question. When a new
+question's embedding is close enough to a stored one, the stored answer is returned and no
+model call is made. For a RAG product with repetitive traffic, this is the single largest cost
+lever. In our benchmark the hit rate was 70%, against 26% for an
+exact-match cache.</p>
+
+<p>It is also the easiest way to quietly ship wrong answers. A cache that checks similarity
+alone served another question's answer on <strong>21% of its hits</strong>, and
+overall accuracy dropped 15.7 points. This article explains why that happens
+and the four checks that brought false hits down to 0.1%.</p>
+
+<h2>Why similarity alone is not enough</h2>
+<p>Embeddings are built to put sentences with similar <em>wording and topic</em> close together.
+Caching needs something stricter: questions that have <em>the same answer</em>. Those diverge in
+three common ways.</p>
+<ol>
+<li><strong>Entity swaps.</strong> "How much storage does the Pro plan include?" and "How much
+storage does the Business plan include?" differ by a single token. Their cosine similarity is
+very high, but the answers are 1,000 GB and 3,000 GB.</li>
+<li><strong>Number swaps.</strong> "What would 12 seats cost per year?" and "What would 30 seats
+cost per year?" also differ by one token, and the answers differ.</li>
+<li><strong>Filler inflation.</strong> Real users write "Hey team, quick question: … Thanks in
+advance!" When two different short questions share the same greeting and sign-off, the shared
+filler can push their similarity above any sensible threshold.</li>
+</ol>
+<p>Raising the threshold helps, but it gives up hits on real paraphrases and never fully
+removes entity swaps, because those are often the <em>most</em> similar pairs of all.</p>
+
+<h2>Four checks for a cache hit</h2>
+<div class="table-wrap"><table class="text">
+<tr><th>Check</th><th>What it compares</th><th>Catches</th></tr>
+<tr><td>1. Similarity</td><td>cosine(query embeddings) ≥ threshold</td><td>unrelated questions</td></tr>
+<tr><td>2. Key terms</td><td>numbers and entity names must match exactly</td><td>entity and number swaps</td></tr>
+<tr><td>3. Topic overlap</td><td>Jaccard over query words found in the knowledge base</td><td>filler inflation, attribute swaps</td></tr>
+<tr><td>4. Context overlap</td><td>Jaccard over retrieved document ids</td><td>answers grounded in different docs</td></tr>
+</table></div>
+
+<h3>Key terms, learned from your corpus</h3>
+<p>You don't need a hand-maintained entity list. Scan the knowledge base for words that appear
+capitalised mid-sentence (product names, plan names, feature names). Drop the ones that
+appear in most documents, such as the product's own name, because they don't tell answers apart.
+Add every number in the query. Two questions may share a cached answer only if these sets are
+identical.</p>
+
+<h3>Topic overlap ignores small talk</h3>
+<p>Take the query words that also occur in the knowledge base, minus stopwords. "Thanks", "team"
+and "proposal" never appear in product docs, so they drop out. "Storage", "history" and "rate
+limit" do appear, so they count. Requiring a Jaccard overlap of at least 0.6 rejects "Pro vs
+Business on <em>storage</em>" against "… on <em>version history</em>", however much filler the two
+share.</p>
+
+<h3>Context overlap keeps answers grounded</h3>
+<p>Retrieval already runs before the cache lookup, because the router needs its scores too.
+Storing the retrieved document ids with each cache entry is free. If a new query retrieves
+different documents, the cached answer was grounded in different evidence and should not be
+reused. This check also invalidates naturally when documents change.</p>
+
+<h2>Results</h2>
+<div class="table-wrap"><table><tr><th>Strategy</th><th>Cost / 1k requests</th><th>vs baseline</th><th>p95 latency</th><th>vs baseline</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th></tr><tr><td>Always large model</td><td>$2.78</td><td>–</td><td>7.71 s</td><td>–</td><td>96.2% ± 0.7</td><td>0%</td><td>–</td></tr><tr><td>Exact-match cache</td><td>$2.05</td><td>-26%</td><td>7.20 s</td><td>-7%</td><td>96.2% ± 0.8</td><td>26%</td><td>0.0%</td></tr><tr><td>Semantic cache, similarity only</td><td>$0.58</td><td>-79%</td><td>4.59 s</td><td>-41%</td><td class="bad">80.6% ± 1.6</td><td>78%</td><td class="bad">21.3%</td></tr><tr class=hl><td>Semantic cache, guarded</td><td>$0.78</td><td>-72%</td><td>5.18 s</td><td>-33%</td><td>96.8% ± 0.6</td><td>70%</td><td>0.1%</td></tr></table></div>
+<p>The guarded cache keeps most of the naive cache's savings: cost falls
+72% instead of
+79%, with quality at the baseline level.
+The guards cost microseconds, since they are set comparisons on a handful of tokens.</p>
+
+<h2>Practical advice</h2>
+<ul>
+<li><strong>Measure false hits, not just hit rate.</strong> A hit-rate dashboard rewards exactly the
+failure described here. Sample cache hits and check whether the matched question has the same answer.</li>
+<li><strong>Start the threshold around 0.8 and sweep it.</strong> With guards in place, you can lower it
+for more hits. Our <a href="/benchmark">threshold sweep</a> stays under 0.5% false hits even at 0.6.</li>
+<li><strong>Remember the cache freezes answers.</strong> If a wrong answer gets cached, it is served
+until it expires. Use a TTL, and consider caching only answers from your strongest model.</li>
+<li><strong>Use a real sentence-embedding model in production.</strong> It catches true paraphrases
+that lexical embedders miss. That raises similarity for look-alikes too, which makes the guards
+even more important.</li>
+</ul>
+
+<p>The implementation is about 200 lines of Python in
+<a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing/blob/main/src/ragroute/cache.py"><code>cache.py</code></a>. Also see
+<a href="/articles/cost-aware-llm-routing">cost-aware LLM routing</a>, the other half of the cost story.</p>
+</article>
+
+</div></main>
+<footer class="site"><div class="wrap">
+<span>Built by Nawal. MIT licensed. Code on <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a>.</span>
+<span><a href="/benchmark">Benchmark</a> · <a href="/articles">Articles</a> · <a href="/sitemap.xml">Sitemap</a></span>
+</div></footer>
+</body>
+</html>

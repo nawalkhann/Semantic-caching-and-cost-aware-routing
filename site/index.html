@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semantic Caching &amp; Cost-Aware LLM Routing for RAG</title>
+<meta name="description" content="Open-source semantic cache and LLM router for RAG. It cuts LLM cost 83% and p95 latency 33% at the same accuracy, with a per-request cost dashboard.">
+<meta name="keywords" content="semantic caching, LLM routing, RAG, LLM cost optimization, p95 latency, model routing, semantic cache, Python">
+<meta name="author" content="Nawal">
+<link rel="canonical" href="https://semantic-cache-router.vercel.app/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Semantic Cache Router">
+<meta property="og:title" content="Semantic Caching &amp; Cost-Aware LLM Routing for RAG">
+<meta property="og:description" content="Open-source semantic cache and LLM router for RAG. It cuts LLM cost 83% and p95 latency 33% at the same accuracy, with a per-request cost dashboard.">
+<meta property="og:url" content="https://semantic-cache-router.vercel.app/">
+<meta property="og:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Semantic Caching &amp; Cost-Aware LLM Routing for RAG">
+<meta name="twitter:description" content="Open-source semantic cache and LLM router for RAG. It cuts LLM cost 83% and p95 latency 33% at the same accuracy, with a per-request cost dashboard.">
+<meta name="twitter:image" content="https://semantic-cache-router.vercel.app/og.png">
+
+<meta name="theme-color" content="#2a63c4">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "Semantic Cache Router", "url": "https://semantic-cache-router.vercel.app/"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareSourceCode", "name": "Semantic Cache Router", "codeRepository": "https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing", "programmingLanguage": "Python", "license": "https://opensource.org/licenses/MIT", "author": {"@type": "Person", "name": "Nawal"}, "description": "Semantic caching and cost-aware model routing for RAG services."}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Semantic Cache Router</a>
+<nav aria-label="Main"><a href="/" aria-current=page>Home</a><a href="/benchmark">Benchmark</a><a href="/dashboard">Dashboard</a><a href="/articles">Articles</a><a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a></nav>
+</div></header>
+<main><div class="wrap">
+
+
+<h1>Semantic caching and cost-aware model routing for RAG</h1>
+<p class="lede">An open-source Python layer that sits in front of the LLMs in a
+retrieval-augmented generation (RAG) service. It answers repeat questions from a semantic cache,
+sends easy questions to a small model and hard ones to a large model, and tracks cost and
+latency for every request.</p>
+<div class="cta"><a class="btn primary" href="/benchmark">See the benchmark</a>
+<a class="btn" href="/dashboard">Open the dashboard</a>
+<a class="btn" href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">View on GitHub</a></div>
+
+<div class="stats">
+<div class="stat"><b>−83%</b><span>LLM cost per request ($2.78 → $0.47 per 1k)</span></div>
+<div class="stat"><b>−33%</b><span>p95 latency (7.7 s → 5.1 s)</span></div>
+<div class="stat"><b>96.0%</b><span>accuracy vs 96.2% always using the large model (±1.0 pts)</span></div>
+</div>
+<p class="note">3,000 requests × 5 seeds on a product-docs workload, with simulated
+model tiers. See <a href="/benchmark#method">how the benchmark works</a>.</p>
+
+<a href="/dashboard" class="shot"><img src="/dashboard-preview.webp" width="1200" height="1250"
+alt="Dashboard showing cumulative LLM cost, rolling p95 latency, and the share of requests answered by the cache, small model and large model"
+loading="lazy" decoding="async"></a>
+
+<h2>Why RAG products get expensive</h2>
+<p>Every question to a RAG service usually costs one large-model call, priced on the retrieved
+context plus the answer. Real traffic is repetitive and mostly simple, so much of that spend goes
+to questions that were already answered, or that a model costing a twentieth as much would
+answer just as well. This project removes both kinds of waste and measures exactly what that
+does to quality.</p>
+
+<div class="grid">
+<div class="card"><h3>Guarded semantic cache</h3><p>It reuses an answer when a new question means
+the same thing. Embedding similarity alone is not enough: "storage on Pro" and "storage on
+Business" look almost identical. So a hit also needs matching entities and numbers, overlapping
+topic words, and the same retrieved documents.</p></div>
+<div class="card"><h3>Cost-aware router</h3><p>A logistic complexity score sends simple
+lookups to a small model. Comparisons, constraint problems and arithmetic go to a large model.
+It uses only signals that are free before any LLM call: the query text, its entities and the
+retrieval scores.</p></div>
+<div class="card"><h3>Per-request accounting</h3><p>Every request logs its route, tokens,
+cost and a latency breakdown (embed, retrieve, cache, LLM) to SQLite. A dashboard shows
+cumulative cost, rolling p95 latency and the route mix.</p></div>
+</div>
+
+<h2>Results at a glance</h2>
+<div class="table-wrap"><table><tr><th>Strategy</th><th>Cost / 1k requests</th><th>vs baseline</th><th>p95 latency</th><th>vs baseline</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th></tr><tr><td>Always large model</td><td>$2.78</td><td>–</td><td>7.71 s</td><td>–</td><td>96.2% ± 0.7</td><td>0%</td><td>–</td></tr><tr><td>Exact-match cache</td><td>$2.05</td><td>-26%</td><td>7.20 s</td><td>-7%</td><td>96.2% ± 0.8</td><td>26%</td><td>0.0%</td></tr><tr><td>Semantic cache, similarity only</td><td>$0.58</td><td>-79%</td><td>4.59 s</td><td>-41%</td><td class="bad">80.6% ± 1.6</td><td>78%</td><td class="bad">21.3%</td></tr><tr><td>Semantic cache, guarded</td><td>$0.78</td><td>-72%</td><td>5.18 s</td><td>-33%</td><td>96.8% ± 0.6</td><td>70%</td><td>0.1%</td></tr><tr><td>Router only</td><td>$1.88</td><td>-32%</td><td>7.61 s</td><td>-1%</td><td>95.3% ± 0.5</td><td>0%</td><td>–</td></tr><tr class=hl><td>Guarded cache + router</td><td>$0.47</td><td>-83%</td><td>5.15 s</td><td>-33%</td><td>96.0% ± 1.0</td><td>70%</td><td>0.1%</td></tr></table></div>
+<p>The similarity-only cache looks cheapest, but it served the wrong answer on
+21% of hits and lost 15.7 accuracy points. The guards bring
+false hits down to 0.1%. The full analysis and threshold sweeps are on the
+<a href="/benchmark">benchmark page</a>.</p>
+
+<h2>How a request flows</h2>
+<pre><code>query → embed → retrieve top-k → cache lookup ── hit ──→ cached answer (~1 ms, ~$0)
+                                     │ miss
+                                     ▼
+                         router: complexity score
+                          │ low              │ high
+                          ▼                  ▼
+                      small model        large model → answer → add to cache
+every request → SQLite log → dashboard</code></pre>
+
+<h2>Try it</h2>
+<pre><code>git clone https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing
+cd semantic-caching-and-cost-aware-routing
+pip install -e ".[dev]"
+pytest
+python benchmarks/run_benchmark.py
+uvicorn ragroute.api:create_app --factory   # then open /dashboard</code></pre>
+<p>To use real models, point it at any OpenAI-compatible endpoint with environment variables.
+The <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing#running-against-real-models">README</a> has the details.</p>
+
+<h2>Articles</h2>
+<ul><li><a href="/articles/semantic-caching-false-hits">Semantic Caching for LLMs: Avoiding Wrong Cached Answers</a></li><li><a href="/articles/cost-aware-llm-routing">Cost-Aware LLM Routing: Send Easy Questions to Small Models</a></li></ul>
+
+</div></main>
+<footer class="site"><div class="wrap">
+<span>Built by Nawal. MIT licensed. Code on <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a>.</span>
+<span><a href="/benchmark">Benchmark</a> · <a href="/articles">Articles</a> · <a href="/sitemap.xml">Sitemap</a></span>
+</div></footer>
+</body>
+</html>

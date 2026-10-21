@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Caching &amp; Routing Articles | Semantic Cache Router</title>
+<meta name="description" content="Practical write-ups on semantic caching, cost-aware LLM routing and cutting RAG cost and latency, backed by a reproducible benchmark.">
+<meta name="keywords" content="LLM articles, semantic caching, LLM routing, RAG cost">
+<meta name="author" content="Nawal">
+<link rel="canonical" href="https://semantic-cache-router.vercel.app/articles">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Semantic Cache Router">
+<meta property="og:title" content="LLM Caching &amp; Routing Articles | Semantic Cache Router">
+<meta property="og:description" content="Practical write-ups on semantic caching, cost-aware LLM routing and cutting RAG cost and latency, backed by a reproducible benchmark.">
+<meta property="og:url" content="https://semantic-cache-router.vercel.app/articles">
+<meta property="og:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LLM Caching &amp; Routing Articles | Semantic Cache Router">
+<meta name="twitter:description" content="Practical write-ups on semantic caching, cost-aware LLM routing and cutting RAG cost and latency, backed by a reproducible benchmark.">
+<meta name="twitter:image" content="https://semantic-cache-router.vercel.app/og.png">
+
+<meta name="theme-color" content="#2a63c4">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://semantic-cache-router.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Articles", "item": "https://semantic-cache-router.vercel.app/articles"}]}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Semantic Cache Router</a>
+<nav aria-label="Main"><a href="/">Home</a><a href="/benchmark">Benchmark</a><a href="/dashboard">Dashboard</a><a href="/articles" aria-current=page>Articles</a><a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a></nav>
+</div></header>
+<main><div class="wrap">
+<div class="crumbs"><a href="/">Home</a></div>
+<h1>Articles</h1><p class=lede>What we learned building and benchmarking a semantic cache and model router for RAG.</p><div class="card"><h2 style="margin-top:0;font-size:22px"><a href="/articles/semantic-caching-false-hits">Semantic Caching for LLMs: Avoiding Wrong Cached Answers</a></h2><p>A similarity-only semantic cache served wrong answers on 21% of hits. Four checks cut false hits to 0.1% and keep most of the savings.</p></div><div class="card"><h2 style="margin-top:0;font-size:22px"><a href="/articles/cost-aware-llm-routing">Cost-Aware LLM Routing: Send Easy Questions to Small Models</a></h2><p>A cheap complexity router sends easy questions to a small LLM and hard ones to a large one, cutting cost 32% with 98% routing accuracy.</p></div>
+</div></main>
+<footer class="site"><div class="wrap">
+<span>Built by Nawal. MIT licensed. Code on <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a>.</span>
+<span><a href="/benchmark">Benchmark</a> · <a href="/articles">Articles</a> · <a href="/sitemap.xml">Sitemap</a></span>
+</div></footer>
+</body>
+</html>

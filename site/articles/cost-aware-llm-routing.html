@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost-Aware LLM Routing: Send Easy Questions to Small Models</title>
+<meta name="description" content="A cheap complexity router sends easy questions to a small LLM and hard ones to a large one, cutting cost 32% with 98% routing accuracy.">
+<meta name="keywords" content="LLM routing, model routing, cost-aware routing, LLM router, small vs large model, reduce LLM cost, RAG cost optimization">
+<meta name="author" content="Nawal">
+<link rel="canonical" href="https://semantic-cache-router.vercel.app/articles/cost-aware-llm-routing">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Semantic Cache Router">
+<meta property="og:title" content="Cost-Aware LLM Routing: Send Easy Questions to Small Models">
+<meta property="og:description" content="A cheap complexity router sends easy questions to a small LLM and hard ones to a large one, cutting cost 32% with 98% routing accuracy.">
+<meta property="og:url" content="https://semantic-cache-router.vercel.app/articles/cost-aware-llm-routing">
+<meta property="og:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cost-Aware LLM Routing: Send Easy Questions to Small Models">
+<meta name="twitter:description" content="A cheap complexity router sends easy questions to a small LLM and hard ones to a large one, cutting cost 32% with 98% routing accuracy.">
+<meta name="twitter:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="article:published_time" content="2026-10-21"><meta property="article:author" content="Nawal">
+<meta name="theme-color" content="#2a63c4">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://semantic-cache-router.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Articles", "item": "https://semantic-cache-router.vercel.app/articles"}, {"@type": "ListItem", "position": 3, "name": "Cost-aware LLM routing with a small and a large model", "item": "https://semantic-cache-router.vercel.app/articles/cost-aware-llm-routing"}]}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Cost-Aware LLM Routing: Send Easy Questions to Small Models", "description": "A cheap complexity router sends easy questions to a small LLM and hard ones to a large one, cutting cost 32% with 98% routing accuracy.", "author": {"@type": "Person", "name": "Nawal"}, "datePublished": "2026-10-21", "dateModified": "2026-10-21", "image": "https://semantic-cache-router.vercel.app/og.png", "mainEntityOfPage": "https://semantic-cache-router.vercel.app/articles/cost-aware-llm-routing", "keywords": "LLM routing, model routing, cost-aware routing, LLM router, small vs large model, reduce LLM cost, RAG cost optimization"}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Semantic Cache Router</a>
+<nav aria-label="Main"><a href="/">Home</a><a href="/benchmark">Benchmark</a><a href="/dashboard">Dashboard</a><a href="/articles">Articles</a><a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a></nav>
+</div></header>
+<main><div class="wrap">
+<div class="crumbs"><a href="/">Home</a> / <a href="/articles">Articles</a></div>
+
+<article>
+<h1>Cost-Aware LLM Routing: Send Easy Questions to Small Models</h1>
+<p class="meta">By Nawal · 2026-10-21 · 6 min read</p>
+
+<p>Most questions a RAG product receives are lookups: "What is the API rate limit on the Pro
+plan?" A small model reads the retrieved paragraph and answers correctly. The large model also
+answers correctly, at about 25× the price per token and several times the latency.
+A router's job is to tell the two kinds of question apart <em>before</em> paying for either.</p>
+
+<h2>What makes a question hard</h2>
+<p>In a product-docs workload, hard questions share a few traits:</p>
+<ul>
+<li><strong>Several entities:</strong> "Pro vs Business storage?" needs two facts and a comparison.</li>
+<li><strong>Constraints:</strong> "We are 40 people and need SSO. What is the cheapest plan?" needs filtering and ranking.</li>
+<li><strong>Arithmetic:</strong> "What would 30 seats on Pro cost per year with annual billing?"</li>
+<li><strong>Reasoning words:</strong> why, explain, recommend, trade-offs.</li>
+</ul>
+<p>Length is a poor signal on its own. "Pro vs Business storage?" is four words and hard. "Our
+designers keep a lot of large files around, so before we sign up I'd like to confirm how many
+gigabytes each seat gets on Pro" is long and easy.</p>
+
+<h2>A router that costs nothing to run</h2>
+<p>The router is a logistic regression over eight features that are free to compute once
+retrieval has run:</p>
+<pre><code>multi_entity   two or more entity names in the query
+compare        vs, compare, more, cheapest, difference, ...
+aggregate      total, annual, yearly, per year, ...
+constraint     need, must, if, requires, ...
+reasoning      why, explain, should, recommend, ...
+numbers        count of numbers in the query (capped)
+log_len        log of query length
+multi_doc      retrieved docs scoring close to the top one</code></pre>
+<p>The score is a probability that the question is hard. At or above a threshold (default 0.5),
+the question goes to the large model; below it, to the small one. The default weights are set
+by hand. With labelled traffic, <code>ComplexityRouter.fit()</code> re-fits them in milliseconds.
+On our workload, the default router sends 98% of requests to the right tier.</p>
+
+<h2>Results</h2>
+<div class="table-wrap"><table><tr><th>Strategy</th><th>Cost / 1k requests</th><th>vs baseline</th><th>p95 latency</th><th>vs baseline</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th></tr><tr><td>Always large model</td><td>$2.78</td><td>–</td><td>7.71 s</td><td>–</td><td>96.2% ± 0.7</td><td>0%</td><td>–</td></tr><tr class=hl><td>Router only</td><td>$1.88</td><td>-32%</td><td>7.61 s</td><td>-1%</td><td>95.3% ± 0.5</td><td>0%</td><td>–</td></tr><tr><td>Guarded cache + router</td><td>$0.47</td><td>-83%</td><td>5.15 s</td><td>-33%</td><td>96.0% ± 1.0</td><td>70%</td><td>0.1%</td></tr></table></div>
+<p>Routing alone cuts cost 32% for a 1-point accuracy cost. It barely
+moves p95 latency (1%%), and that is expected. The slowest requests are
+long answers to hard questions, and a good router keeps sending those to the large model. Tail
+latency only falls once the cache removes repeat hard questions entirely. That's why the two
+techniques complement each other: together they cut cost 83% and p95
+33%.</p>
+
+<h2>Choosing the threshold</h2>
+<p>The threshold is a business decision, so expose it as configuration. In our
+<a href="/benchmark">router sweep</a>, raising the threshold from 0.5 to 0.8 saves another
+14%
+of cost but loses about
+4
+accuracy points, because hard questions start landing on the small model. Lowering it below 0.5
+spends more for no measurable gain.</p>
+
+<h2>When to use something heavier</h2>
+<ul>
+<li><strong>Cascades:</strong> try the small model first and escalate when it is unsure. This works
+when you can trust a confidence signal, but you pay for two calls on every escalation.</li>
+<li><strong>Learned routers:</strong> a small classifier on query embeddings. Worth it once you have
+thousands of labelled examples and a wide variety of question types.</li>
+<li><strong>Per-tenant thresholds:</strong> premium customers get a lower threshold, so more of their
+traffic goes to the large model.</li>
+</ul>
+<p>Start with the cheap feature router. Log the complexity score for every request; this
+project's dashboard does. That gives you the data to tune it and, later, to train something better.</p>
+
+<p>Read the <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing/blob/main/src/ragroute/router.py">router source</a> or the companion
+article on <a href="/articles/semantic-caching-false-hits">semantic caching without false hits</a>.</p>
+</article>
+
+</div></main>
+<footer class="site"><div class="wrap">
+<span>Built by Nawal. MIT licensed. Code on <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a>.</span>
+<span><a href="/benchmark">Benchmark</a> · <a href="/articles">Articles</a> · <a href="/sitemap.xml">Sitemap</a></span>
+</div></footer>
+</body>
+</html>

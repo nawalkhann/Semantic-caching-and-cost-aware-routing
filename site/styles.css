@@ -1,0 +1,49 @@
+:root{color-scheme:light;--bg:#f7f7f5;--surface:#fff;--border:#e4e3de;--text:#141413;
+--muted:#5c5b56;--accent:#2a63c4;--accent-ink:#fff;--good:#0a7d33;--bad:#b42318;--code:#f0efea}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#121211;
+--surface:#1b1b1a;--border:#2f2f2c;--text:#f1f0ec;--muted:#b4b3ab;--accent:#6ea2ff;--accent-ink:#0b1426;
+--good:#4cc27a;--bad:#ff7a6e;--code:#252523}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#121211;--surface:#1b1b1a;--border:#2f2f2c;--text:#f1f0ec;
+--muted:#b4b3ab;--accent:#6ea2ff;--accent-ink:#0b1426;--good:#4cc27a;--bad:#ff7a6e;--code:#252523}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}img{max-width:100%;height:auto;display:block}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+header.site{border-bottom:1px solid var(--border);background:var(--surface)}
+header.site .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--text);display:flex;align-items:center;gap:8px}
+nav a{color:var(--muted);text-decoration:none;margin-left:16px;font-size:15px}
+nav a:hover,nav a[aria-current]{color:var(--text)}
+main{padding:40px 0 64px}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.15;margin:0 0 16px;letter-spacing:-.01em}
+h2{font-size:26px;line-height:1.25;margin:48px 0 12px}h3{font-size:20px;margin:28px 0 8px}
+.lede{font-size:20px;color:var(--muted);max-width:720px;margin:0 0 28px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
+.btn{display:inline-block;padding:11px 18px;border-radius:10px;text-decoration:none;font-weight:600;border:1px solid var(--border);color:var(--text);background:var(--surface)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:8px 0 12px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
+.stat b{display:block;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:15px}
+.note{color:var(--muted);font-size:15px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin:16px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600;white-space:normal;vertical-align:bottom}
+table.text td,table.text th{white-space:normal;text-align:left;min-width:110px}
+tr:last-child td{border-bottom:0}tr.hl td{font-weight:700}
+.good{color:var(--good)}.bad{color:var(--bad)}
+pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+code{background:var(--code);padding:1px 5px;border-radius:5px}
+pre{background:var(--code);padding:14px 16px;border-radius:10px;overflow-x:auto;line-height:1.5}
+pre code{background:none;padding:0}
+.shot{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:20px 0}
+article{max-width:740px}article p,article li{max-width:70ch}
+.meta{color:var(--muted);font-size:15px;margin-bottom:28px}
+.crumbs{font-size:14px;color:var(--muted);margin-bottom:10px}.crumbs a{color:var(--muted)}
+footer.site{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:14px}
+footer.site .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+footer.site a{color:var(--muted)}
+@media (max-width:560px){nav a{margin-left:0;margin-right:14px}header.site .wrap{padding-top:8px;padding-bottom:8px}}

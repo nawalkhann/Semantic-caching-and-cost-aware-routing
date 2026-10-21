@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Cache &amp; Routing Benchmark: Cost, p95, Accuracy</title>
+<meta name="description" content="Six RAG caching and routing strategies compared. A guarded cache plus router cut LLM cost 83% and p95 latency 33%; a naive cache had 21% false hits.">
+<meta name="keywords" content="LLM benchmark, semantic cache benchmark, LLM routing benchmark, p95 latency, LLM cost per request, RAG evaluation">
+<meta name="author" content="Nawal">
+<link rel="canonical" href="https://semantic-cache-router.vercel.app/benchmark">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Semantic Cache Router">
+<meta property="og:title" content="LLM Cache &amp; Routing Benchmark: Cost, p95, Accuracy">
+<meta property="og:description" content="Six RAG caching and routing strategies compared. A guarded cache plus router cut LLM cost 83% and p95 latency 33%; a naive cache had 21% false hits.">
+<meta property="og:url" content="https://semantic-cache-router.vercel.app/benchmark">
+<meta property="og:image" content="https://semantic-cache-router.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LLM Cache &amp; Routing Benchmark: Cost, p95, Accuracy">
+<meta name="twitter:description" content="Six RAG caching and routing strategies compared. A guarded cache plus router cut LLM cost 83% and p95 latency 33%; a naive cache had 21% false hits.">
+<meta name="twitter:image" content="https://semantic-cache-router.vercel.app/og.png">
+
+<meta name="theme-color" content="#2a63c4">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://semantic-cache-router.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Benchmark", "item": "https://semantic-cache-router.vercel.app/benchmark"}]}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "Dataset", "name": "Semantic caching and LLM routing benchmark results", "description": "Cost, p95 latency and accuracy for six caching and routing strategies in a RAG service.", "url": "https://semantic-cache-router.vercel.app/benchmark", "creator": {"@type": "Person", "name": "Nawal"}, "license": "https://opensource.org/licenses/MIT"}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="/"><img src="/favicon.svg" alt="" width="24" height="24">Semantic Cache Router</a>
+<nav aria-label="Main"><a href="/">Home</a><a href="/benchmark" aria-current=page>Benchmark</a><a href="/dashboard">Dashboard</a><a href="/articles">Articles</a><a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a></nav>
+</div></header>
+<main><div class="wrap">
+<div class="crumbs"><a href="/">Home</a></div>
+
+<h1>Benchmark: semantic caching and model routing</h1>
+<p class="lede">Six strategies replay the same 3,000-request stream, repeated over
+5 seeds. Results are mean ± standard deviation across seeds.</p>
+
+<div class="table-wrap"><table><tr><th>Strategy</th><th>Cost / 1k requests</th><th>vs baseline</th><th>p95 latency</th><th>vs baseline</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th></tr><tr><td>Always large model</td><td>$2.78</td><td>–</td><td>7.71 s</td><td>–</td><td>96.2% ± 0.7</td><td>0%</td><td>–</td></tr><tr><td>Exact-match cache</td><td>$2.05</td><td>-26%</td><td>7.20 s</td><td>-7%</td><td>96.2% ± 0.8</td><td>26%</td><td>0.0%</td></tr><tr><td>Semantic cache, similarity only</td><td>$0.58</td><td>-79%</td><td>4.59 s</td><td>-41%</td><td class="bad">80.6% ± 1.6</td><td>78%</td><td class="bad">21.3%</td></tr><tr><td>Semantic cache, guarded</td><td>$0.78</td><td>-72%</td><td>5.18 s</td><td>-33%</td><td>96.8% ± 0.6</td><td>70%</td><td>0.1%</td></tr><tr><td>Router only</td><td>$1.88</td><td>-32%</td><td>7.61 s</td><td>-1%</td><td>95.3% ± 0.5</td><td>0%</td><td>–</td></tr><tr class=hl><td>Guarded cache + router</td><td>$0.47</td><td>-83%</td><td>5.15 s</td><td>-33%</td><td>96.0% ± 1.0</td><td>70%</td><td>0.1%</td></tr></table></div>
+
+<h2>What the numbers say</h2>
+<ul>
+<li><strong>Naive semantic caching hurts quality.</strong> With similarity only,
+21% of cache hits returned another question's answer, and accuracy fell
+15.7 points. Look-alike questions such as "Pro vs Business on storage" and "Pro
+vs Business on version history" embed very closely, especially when users add greetings and
+sign-offs.</li>
+<li><strong>Guards fix it cheaply.</strong> Requiring matching entities and numbers, overlapping topic
+words and the same retrieved documents cuts false hits to 0.1%. The hit rate stays
+at 70%, compared with 26% for an exact-match cache.</li>
+<li><strong>Routing alone cuts cost but not tail latency.</strong> The router saves
+32% of cost, but p95 moves only 1%%. The slowest
+requests are the hard ones, and those correctly still go to the large model.</li>
+<li><strong>Combined</strong>, cost per request falls 83% and p95 latency
+33%. Accuracy is 96.0% vs 96.2%, inside the seed-to-seed
+noise.</li>
+</ul>
+
+<h2>Cache similarity threshold</h2>
+<p>Lower thresholds give more hits and lower cost. Because the guards catch look-alikes, false
+hits stay under 0.5% even at 0.6. Accuracy still becomes noisier at low thresholds, because a
+wrong answer that gets cached is then reused more often.</p>
+<div class="table-wrap"><table><tr><th>Threshold</th><th>Cost / 1k</th><th>p95</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th><th>Misses to large model</th></tr><tr><td>0.6</td><td>$0.24</td><td>3.27 s</td><td>94.5%</td><td>83%</td><td>0.3%</td><td>36%</td></tr><tr><td>0.7</td><td>$0.32</td><td>4.27 s</td><td>94.3%</td><td>78%</td><td>0.3%</td><td>38%</td></tr><tr><td>0.8</td><td>$0.47</td><td>5.15 s</td><td>96.0%</td><td>70%</td><td>0.1%</td><td>42%</td></tr><tr><td>0.9</td><td>$0.71</td><td>5.97 s</td><td>95.6%</td><td>58%</td><td>0.0%</td><td>44%</td></tr><tr><td>0.95</td><td>$0.90</td><td>6.46 s</td><td>95.4%</td><td>50%</td><td>0.0%</td><td>48%</td></tr></table></div>
+
+<h2>Router threshold</h2>
+<p>The router threshold is the cost/quality dial. Above 0.5, hard questions start going to the
+small model and accuracy drops.</p>
+<div class="table-wrap"><table><tr><th>Threshold</th><th>Cost / 1k</th><th>p95</th><th>Accuracy</th><th>Cache hits</th><th>False hits</th><th>Misses to large model</th></tr><tr><td>0.2</td><td>$0.59</td><td>5.26 s</td><td>95.3%</td><td>70%</td><td>0.1%</td><td>63%</td></tr><tr><td>0.35</td><td>$0.48</td><td>5.18 s</td><td>95.5%</td><td>70%</td><td>0.1%</td><td>44%</td></tr><tr><td>0.5</td><td>$0.47</td><td>5.15 s</td><td>96.0%</td><td>70%</td><td>0.1%</td><td>42%</td></tr><tr><td>0.65</td><td>$0.45</td><td>5.04 s</td><td>94.1%</td><td>70%</td><td>0.1%</td><td>38%</td></tr><tr><td>0.8</td><td>$0.41</td><td>4.90 s</td><td>92.3%</td><td>70%</td><td>0.1%</td><td>34%</td></tr></table></div>
+
+<h2 id="method">How the benchmark works</h2>
+<p><strong>Real:</strong> retrieval, embeddings, the cache and its guards, the router, token
+counts for every prompt, local compute latency, and grading against reference answers.</p>
+<p><strong>Simulated:</strong> the LLM calls. Each tier has an explicit price, latency profile and
+accuracy per difficulty. The simulated model answers correctly with that probability and
+otherwise gives a plausible wrong answer.</p>
+<div class="table-wrap"><table class="text">
+<tr><th></th><th>Small model</th><th>Large model</th></tr>
+<tr><td>Price, USD per 1M tokens (in / out)</td><td>0.15 / 0.60</td><td>3.00 / 15.00</td></tr>
+<tr><td>Accuracy, easy / hard questions</td><td>96% / 62%</td><td>98% / 94%</td></tr>
+<tr><td>Time to first token / per output token</td><td>0.30 s / 8 ms</td><td>0.80 s / 25 ms</td></tr>
+</table></div>
+<p>The workload is a fictional SaaS product's documentation: 9 documents
+and 73 question intents, each with 3–5 paraphrases. Requests are drawn with
+Zipf popularity, and users add greetings, sign-offs, casing changes and word swaps. Hit rates
+depend on how repetitive traffic is, so expect lower hit rates on long-tail traffic.
+Accuracy differences under about 1 point are within noise.</p>
+<p>Reproduce it with <code>python benchmarks/run_benchmark.py</code>. The raw results are in
+<a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing/blob/main/benchmarks/results/results.json">results.json</a>.</p>
+
+</div></main>
+<footer class="site"><div class="wrap">
+<span>Built by Nawal. MIT licensed. Code on <a href="https://github.com/nawalkhann/semantic-caching-and-cost-aware-routing">GitHub</a>.</span>
+<span><a href="/benchmark">Benchmark</a> · <a href="/articles">Articles</a> · <a href="/sitemap.xml">Sitemap</a></span>
+</div></footer>
+</body>
+</html>
