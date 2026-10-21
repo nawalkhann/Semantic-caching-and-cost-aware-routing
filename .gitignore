@@ -1,0 +1,6 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+ragroute.sqlite
+benchmarks/results/requests.sqlite
