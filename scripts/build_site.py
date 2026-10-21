@@ -630,6 +630,11 @@ def dashboard_page() -> str:
             f'<meta name="twitter:card" content="summary_large_image">'
             f'<link rel="icon" href="/favicon.svg" type="image/svg+xml">')
     src = re.sub(r"<title>.*?</title>", f"<title>{html.escape(title)}</title>{head}", src, count=1)
+    src = src.replace("<h1>Benchmark run (seed 0)</h1>",
+                      "<h1>LLM cost and latency dashboard</h1>", 1)
+    src = src.replace("Per-request cost and latency from the semantic cache and model router.",
+                      "Per-request cost and latency for six caching and routing strategies "
+                      "(benchmark run, seed 0). Pick a run to compare.", 1)
     src = src.replace('<main>\n  <h1>', '<main>\n  <p style="margin:0 0 12px"><a href="/" '
                       'style="color:inherit">← Semantic Cache Router</a></p>\n  <h1>', 1)
     return src
